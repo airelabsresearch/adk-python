@@ -29,8 +29,11 @@ from typing import Optional
 
 import click
 from fastapi import FastAPI
+from fastapi import File
+from fastapi import Form
 from fastapi import HTTPException
 from fastapi import Query
+from fastapi import UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.responses import RedirectResponse
@@ -249,6 +252,8 @@ def get_fast_api_app(
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["*"],
+        max_age=86400,  # Cache preflight requests for 24 hours
     )
 
   runner_dict = {}
@@ -736,6 +741,50 @@ def get_fast_api_app(
         session_id=session_id,
         filename=artifact_name,
     )
+
+  @app.post(
+      "/apps/{app_name}/users/{user_id}/sessions/{session_id}/artifacts/upload",
+      response_model_exclude_none=True,
+  )
+  async def upload_artifact(
+      app_name: str,
+      user_id: str,
+      session_id: str,
+      file: UploadFile = File(...),
+      filename: Optional[str] = Form(None),
+  ) -> dict[str, str]:
+    """Upload an artifact to the artifact store."""
+    app_name = agent_engine_id if agent_engine_id else app_name
+    
+    # Use provided filename or fall back to uploaded file's filename
+    artifact_filename = filename or file.filename
+    if not artifact_filename:
+      raise HTTPException(status_code=400, detail="Filename is required")
+    
+    # Read file content
+    file_content = await file.read()
+    
+    # Create Part object for the artifact
+    artifact_part = types.Part.from_bytes(
+        data=file_content,
+        mime_type=file.content_type or "application/octet-stream"
+    )
+    
+    # Store the artifact
+    await artifact_service.store_artifact(
+        app_name=app_name,
+        user_id=user_id,
+        session_id=session_id,
+        filename=artifact_filename,
+        data=artifact_part,
+    )
+    
+    return {
+        "message": "Artifact uploaded successfully",
+        "filename": artifact_filename,
+        "size": len(file_content),
+        "content_type": file.content_type or "application/octet-stream"
+    }
 
   @app.post("/run", response_model_exclude_none=True)
   async def agent_run(req: AgentRunRequest) -> list[Event]:
