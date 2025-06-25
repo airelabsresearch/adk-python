@@ -43,7 +43,8 @@ ENV GOOGLE_CLOUD_LOCATION={gcp_region}
 # Set up environment variables - End
 
 # Install ADK - Start
-RUN pip install google-adk=={adk_version}
+COPY "adk-source/" "/app/adk-source/"
+RUN cd /app/adk-source && pip install .
 # Install ADK - End
 
 # Copy agent - Start
@@ -151,6 +152,13 @@ def to_cloud_run(
         else ''
     )
     click.echo('Copying agent source code complete.')
+    adk_folder = '/Users/vishal/Code/adk-python-1/'
+
+    # copy adk source code
+    click.echo('Copying adk source code...')
+    adk_src_path = os.path.join(temp_folder, 'adk-source')
+    shutil.copytree(adk_folder, adk_src_path)
+    click.echo('Copying adk source code complete.')
 
     # create Dockerfile
     click.echo('Creating Dockerfile...')

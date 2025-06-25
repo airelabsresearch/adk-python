@@ -23,9 +23,11 @@ import time
 import traceback
 import typing
 from typing import Any
+from typing import Dict
 from typing import List
 from typing import Literal
 from typing import Optional
+from typing import Union
 
 import click
 from fastapi import FastAPI
@@ -752,7 +754,8 @@ def get_fast_api_app(
       session_id: str,
       file: UploadFile = File(...),
       filename: Optional[str] = Form(None),
-  ) -> dict[str, str]:
+      max_file_size: int = 10 * 1024 * 1024,  # 10MB default limit
+  ) -> dict[str, Any]:
     """Upload an artifact to the artifact store."""
     app_name = agent_engine_id if agent_engine_id else app_name
     
@@ -761,30 +764,68 @@ def get_fast_api_app(
     if not artifact_filename:
       raise HTTPException(status_code=400, detail="Filename is required")
     
-    # Read file content
-    file_content = await file.read()
-    
-    # Create Part object for the artifact
-    artifact_part = types.Part.from_bytes(
-        data=file_content,
-        mime_type=file.content_type or "application/octet-stream"
-    )
-    
-    # Store the artifact
-    await artifact_service.store_artifact(
-        app_name=app_name,
-        user_id=user_id,
-        session_id=session_id,
-        filename=artifact_filename,
-        data=artifact_part,
-    )
-    
-    return {
-        "message": "Artifact uploaded successfully",
-        "filename": artifact_filename,
-        "size": len(file_content),
-        "content_type": file.content_type or "application/octet-stream"
-    }
+    try:
+      # Read file content with size validation
+      file_content = await file.read(max_file_size + 1)
+      if len(file_content) > max_file_size:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum size allowed is {max_file_size} bytes"
+        )
+      
+      # Determine and validate content type
+      content_type = "application/str"
+      
+      # Create Part object for the artifact
+      artifact_part = types.Part.from_bytes(
+          data=file_content,
+          mime_type=content_type
+      )
+      
+      # Store the artifact
+      version = await artifact_service.save_artifact(
+          app_name=app_name,
+          user_id=user_id,
+          session_id=session_id,
+          filename=artifact_filename,
+          artifact=artifact_part,
+      )
+      
+      # Log the upload
+      logger.info(
+          "Artifact uploaded: app=%s, user=%s, session=%s, file=%s, size=%d bytes",
+          app_name, user_id, session_id, artifact_filename, len(file_content)
+      )
+      
+      # Build response with more details
+      response = {
+          "message": "Artifact uploaded successfully",
+          "filename": artifact_filename,
+          "size": len(file_content),
+          "content_type": content_type,
+      }
+      
+      # Add version information if available
+      if version is not None:
+          response["version"] = version
+          
+      # Add artifact URL
+      response["url"] = f"/apps/{app_name}/users/{user_id}/sessions/{session_id}/artifacts/{artifact_filename}"
+      
+      return response
+      
+    except HTTPException:
+      # Re-raise HTTP exceptions
+      raise
+    except Exception as e:
+      # Log the error
+      logger.error(
+          "Error uploading artifact: %s", str(e), exc_info=True
+      )
+      raise HTTPException(
+          status_code=500,
+          detail=f"Failed to upload artifact: {str(e)}"
+      )
 
   @app.post("/run", response_model_exclude_none=True)
   async def agent_run(req: AgentRunRequest) -> list[Event]:
