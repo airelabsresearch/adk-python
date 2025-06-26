@@ -129,7 +129,7 @@ class LlmAgent(BaseAgent):
   global_instruction: Union[str, InstructionProvider] = ''
   """Instructions for all the agents in the entire agent tree.
 
-  global_instruction ONLY takes effect in root agent.
+  ONLY the global_instruction in root agent will take effect.
 
   For example: use global_instruction to make all agents have a stable identity
   or personality.
@@ -161,10 +161,12 @@ class LlmAgent(BaseAgent):
   # LLM-based agent transfer configs - End
 
   include_contents: Literal['default', 'none'] = 'default'
-  """Whether to include contents in the model request.
+  """Controls content inclusion in model requests.
 
-  When set to 'none', the model request will not include any contents, such as
-  user messages, tool results, etc.
+  Options:
+      default: Model receives relevant conversation history
+      none: Model receives no prior history, operates solely on current
+            instruction and input
   """
 
   # Controlled input/output configurations - Start
@@ -203,11 +205,6 @@ class LlmAgent(BaseAgent):
   NOTE: to use model's built-in code executor, use the `BuiltInCodeExecutor`.
   """
   # Advance features - End
-
-  # TODO: remove below fields after migration. - Start
-  # These fields are added back for easier migration.
-  examples: Optional[ExamplesUnion] = None
-  # TODO: remove above fields after migration. - End
 
   # Callbacks - Start
   before_model_callback: Optional[BeforeModelCallback] = None
