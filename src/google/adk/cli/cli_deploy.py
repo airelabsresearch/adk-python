@@ -42,6 +42,8 @@ ENV GOOGLE_CLOUD_LOCATION={gcp_region}
 
 # Set up environment variables - End
 
+COPY "agents/" "/app/agents/"
+
 # Install ADK - Start
 COPY "adk-source/" "/app/adk-source/"
 RUN cd /app/adk-source && pip install .
@@ -49,7 +51,7 @@ RUN cd /app/adk-source && pip install .
 
 # Copy agent - Start
 
-COPY "agents/{app_name}/" "/app/agents/{app_name}/"
+COPY "agents/" "/app/agents/"
 {install_agent_deps}
 
 # Copy agent - End
@@ -174,11 +176,11 @@ def to_cloud_run(
   try:
     # copy agent source code
     click.echo('Copying agent source code...')
-    agent_src_path = os.path.join(temp_folder, 'agents', app_name)
+    agent_src_path = os.path.join(temp_folder, 'agents')
     shutil.copytree(agent_folder, agent_src_path)
     requirements_txt_path = os.path.join(agent_src_path, 'requirements.txt')
     install_agent_deps = (
-        f'RUN pip install -r "/app/agents/{app_name}/requirements.txt"'
+        f'RUN pip install -r "/app/agents/requirements.txt"'
         if os.path.exists(requirements_txt_path)
         else ''
     )
