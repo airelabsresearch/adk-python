@@ -58,7 +58,7 @@ COPY "agents/" "/app/agents/"
 
 EXPOSE {port}
 
-CMD adk {command} --port={port} {host_option} {service_option} {trace_to_cloud_option} {allow_origins_option} "/app/agents"
+CMD adk {command} --port={port} {host_option} {service_option} {trace_to_cloud_option} {allow_origins_option} "/app/agents/agents"
 """
 
 _AGENT_ENGINE_APP_TEMPLATE = """

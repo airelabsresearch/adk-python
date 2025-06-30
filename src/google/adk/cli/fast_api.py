@@ -793,8 +793,6 @@ def get_fast_api_app(
       max_file_size: int = 10 * 1024 * 1024,  # 10MB default limit
   ) -> dict[str, Any]:
     """Upload an artifact to the artifact store."""
-    app_name = agent_engine_id if agent_engine_id else app_name
-    
     # Use provided filename or fall back to uploaded file's filename
     artifact_filename = filename or file.filename
     if not artifact_filename:
