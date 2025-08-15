@@ -185,7 +185,7 @@ def to_cloud_run(
         else ''
     )
     click.echo('Copying agent source code complete.')
-    adk_folder = '/Users/vishal/Code/adk-python-1/'
+    adk_folder = '../adk-python'
 
     # copy adk source code
     click.echo('Copying adk source code...')
