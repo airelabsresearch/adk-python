@@ -95,6 +95,7 @@ from .utils.agent_loader import AgentLoader
 logger = logging.getLogger("google_adk." + __name__)
 
 _EVAL_SET_FILE_EXTENSION = ".evalset.json"
+_SESSION_NAME = "session_name" 
 
 
 class ApiServerSpanExporter(export.SpanExporter):
@@ -435,6 +436,14 @@ def get_fast_api_app(
           status_code=400, detail=f"Session already exists: {session_id}"
       )
     logger.info("New session created: %s", session_id)
+
+    # Set session name in the state, if the client didn't set it
+    if state is None:
+      state = dict()
+
+    if not _SESSION_NAME in state:
+      state[_SESSION_NAME] = "New Chat"
+
     return await session_service.create_session(
         app_name=app_name, user_id=user_id, state=state, session_id=session_id
     )
@@ -450,6 +459,14 @@ def get_fast_api_app(
       events: Optional[list[Event]] = None,
   ) -> Session:
     logger.info("New session created")
+
+    # Set session name in the state, if the client didn't set it
+    if state is None:
+      state = dict()
+
+    if not _SESSION_NAME in state:
+      state[_SESSION_NAME] = "New Chat"
+    
     session = await session_service.create_session(
         app_name=app_name, user_id=user_id, state=state
     )
@@ -866,6 +883,7 @@ def get_fast_api_app(
     session = await session_service.get_session(
         app_name=req.app_name, user_id=req.user_id, session_id=req.session_id
     )
+    
     if not session:
       raise HTTPException(status_code=404, detail="Session not found")
     runner = await _get_runner_async(req.app_name)
