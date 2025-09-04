@@ -883,7 +883,7 @@ def get_fast_api_app(
     session = await session_service.get_session(
         app_name=req.app_name, user_id=req.user_id, session_id=req.session_id
     )
-    
+
     if not session:
       raise HTTPException(status_code=404, detail="Session not found")
     runner = await _get_runner_async(req.app_name)
