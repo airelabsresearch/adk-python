@@ -495,7 +495,7 @@ class DatabaseSessionService(BaseSessionService):
             app_name=app_name,
             user_id=user_id,
             id=storage_session.id,
-            state={},
+            state=storage_session.state,
             last_update_time=storage_session.update_time.timestamp(),
         )
         sessions.append(session)
